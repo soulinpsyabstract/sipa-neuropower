@@ -1,0 +1,42 @@
+# SIPA OS · neuropower.sipa-os.org · GitLab CI/CD
+# Deploys sipa-neuropower-app (TanStack Start + Cloudflare Workers)
+
+image: node:22
+
+stages:
+  - build
+  - deploy
+
+neuropower:build:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+      - .wrangler/
+    expire_in: 1 hour
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+neuropower:deploy:
+  stage: deploy
+  script:
+    - npm install -g wrangler --silent
+    - npx wrangler deploy --name sipa-neuropower-app
+  environment:
+    name: production/neuropower
+    url: https://neuropower.sipa-os.org
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "web"
+  variables:
+    CLOUDFLARE_API_TOKEN: $CLOUDFLARE_WORKERS_TOKEN
